@@ -1,0 +1,685 @@
+(1.4)
+Comando: db.registros.find().skip(15).limit(1).sort({ano_cerimonia: -1})
+R: 2024
+
+(1.5)
+Comando: db.registros.distinct("cerimonia").length
+R: 96
+
+(1.6)
+Comando: (O comando é longo demais)
+
+(2.1)
+Comando: db.registros.aggregate([
+  { $group: { _id: "$categoria", total_indicacoes: { $sum: 1 } } },
+  { $sort: { total_indicacoes: -1, _id: 1 } }
+])
+R: 116 categorias
+
+(2.2)
+Comando: db.registros.aggregate([
+  { $group: { _id: "$categoria", total_indicacoes: { $sum: 1 } } },
+  { $sort: { total_indicacoes: -1 } },
+  { $limit: 1 }
+])
+R: DIRECTING (Melhor Direção), com 479 indicações
+
+(2.3)
+Comando: db.registros.aggregate([
+  { $group: { _id: "$categoria", total_indicacoes: { $sum: 1 } } },
+  { $group: {
+      _id: "$total_indicacoes",
+      categorias: { $push: "$_id" }
+  } },
+  { $sort: { _id: 1 } },
+  { $limit: 1 }
+])
+R: 'GORDON E. SAWYER AWARD','SPECIAL ACHIEVEMENT AWARD (Sound Editing)', 'AWARD OF COMMENDATION', 'SPECIAL ACHIEVEMENT AWARD (Sound Effects)'
+
+(2.4)
+Comando: db.registros.find(
+  { categoria: "ACTRESS", ano_cerimonia: { $type: "number" } },
+  { _id: 0, cerimonia: 1, ano_cerimonia: 1 }
+).sort({ ano_cerimonia: -1 }).limit(1)
+R: cerimonia: 48, ano_cerimonia: 1976
+
+(2.5)
+Comando: db.registros.aggregate([
+  { $match: { cerimonia: { $in: [1, 98] } } },
+  { $group: {
+      _id: "$categoria",
+      cerimonias: { $addToSet: "$cerimonia" }
+  } },
+  { $match: { cerimonias: [1] } },
+  { $project: { _id: 0, categoria: "$_id" } },
+  { $sort: { categoria: 1 } }
+])
+R: 12 não existem mais
+
+(2.6)
+Comando: db.registros.distinct("categoria", { categoria: { $regex: "DIRECTING" } })
+R: 3 categoria
+
+(3.1)
+Comando: db.registros.countDocuments({ nome_do_indicado: "Natalie Portman" })
+R: 3 vezes
+
+(3.2)
+Comando: db.registros.countDocuments({ nome_do_indicado: "Natalie Portman", vencedor: 1 })
+R: 1 Oscar
+
+(3.3)
+Comando: db.registros.find(
+  { nome_do_indicado: /Natalie Portman/ },
+  { _id: 0, ano_cerimonia: 1, nome_do_filme: 1 }
+).sort({ ano_cerimonia: 1 })
+R: { ano_cerimonia: 2005, nome_do_filme: 'Closer' }
+{ ano_cerimonia: 2011, nome_do_filme: 'Black Swan' }
+{ ano_cerimonia: 2017, nome_do_filme: 'Jackie' }
+{ ano_cerimonia: 2026, nome_do_filme: 'Arco' }
+
+(3.4)
+Comando: db.registros.aggregate([
+  { $match: { nome_do_indicado: /Natalie Portman/ } },
+  { $project: {
+      _id: 0,
+      ano: "$ano_cerimonia",
+      categoria: 1,
+      filme: "$nome_do_filme",
+      venceu: { $cond: [ { $eq: ["$vencedor", 1] }, "Sim", "Não" ] }
+  } },
+  { $sort: { ano: 1 } }
+])
+R: { categoria: 'ACTRESS IN A SUPPORTING ROLE', ano: 2005, filme: 'Closer', venceu: 'Não' }
+{ categoria: 'ACTRESS IN A LEADING ROLE', ano: 2011, filme: 'Black Swan', venceu: 'Sim' }
+{ categoria: 'ACTRESS IN A LEADING ROLE', ano: 2017, filme: 'Jackie', venceu: 'Não' }
+{ categoria: 'ANIMATED FEATURE FILM', ano: 2026, filme: 'Arco', venceu: 'Não' }
+
+(3.5)
+Comando: db.registros.countDocuments({ nome_do_indicado: "Viola Davis" })
+R: 4 vezes
+
+(3.6)
+Comando: db.registros.countDocuments({ nome_do_indicado: "Viola Davis", vencedor: 1 })
+R: 1 Oscar
+
+(3.7)
+Comando: db.registros.distinct("nome_do_filme", { nome_do_indicado: "Viola Davis" })
+R: 4 filmes
+
+(3.8)
+Comando: db.registros.countDocuments({ nome_do_indicado: "Amy Adams", vencedor: 1 })
+R: Não, nunca ganhou (0 Oscars)
+
+(3.9)
+Comando: db.registros.countDocuments({ nome_do_indicado: "Amy Adams", vencedor: 0 })
+R: 6 vezes
+
+(3.10)
+Comando: db.registros.countDocuments({ nome_do_indicado: "Denzel Washington", vencedor: 1 }) > 0
+R: Sim (true), ganhou 2 Oscars
+
+(3.11)
+Comando: db.registros.countDocuments({ nome_do_indicado: "Denzel Washington" })
+R: 9 vezes (10 com /Denzel Washington/, contando a indicação como produtor de Fences em 2017)
+
+(3.12)
+Comando: db.registros.find(
+  { nome_do_indicado: "Denzel Washington", vencedor: 1 },
+  { _id: 0, ano_cerimonia: 1, categoria: 1, nome_do_filme: 1 }
+).sort({ ano_cerimonia: 1 })
+R: { ano_cerimonia: 1990, categoria: 'ACTOR IN A SUPPORTING ROLE', nome_do_filme: 'Glory' }
+{ ano_cerimonia: 2002, categoria: 'ACTOR IN A LEADING ROLE', nome_do_filme: 'Training Day' }
+
+(4.1)
+Comando: db.registros.find(
+  { categoria: "ACTRESS", vencedor: 1 },
+  { _id: 0, nome_do_indicado: 1, ano_cerimonia: 1, nome_do_filme: 1 }
+).sort({ cerimonia: 1 }).limit(1)
+R: Janet Gaynor, 1928, 7th Heaven
+
+(4.2)
+Comando: db.registros.find(
+  { categoria: "ACTOR", vencedor: 1 },
+  { _id: 0, nome_do_indicado: 1, ano_cerimonia: 1, nome_do_filme: 1 }
+).sort({ cerimonia: 1 }).limit(1)
+R: Emil Jannings, 1928, The Last Command
+
+(4.3)
+Comando: db.registros.countDocuments({ vencedor: 1 })
+R: 2512 vencedores (2513 contando o documento com o campo "ven cedor")
+
+(4.4)
+Comando: db.registros.find(
+  { categoria: { $in: ["OUTSTANDING PICTURE", "BEST PICTURE"] }, vencedor: 1 },
+  { _id: 0, ano_cerimonia: 1, nome_do_filme: 1 }
+).sort({ cerimonia: 1 })
+R: 66 filmes: Wings (1928), The Broadway Melody (1929) e todos os vencedores de 1963 a 2026, de Lawrence of Arabia a One Battle After Another (os de 1930 a 1962 estão com outros nomes de categoria)
+
+(4.5)
+Comando: db.registros.distinct("nome_do_filme", { vencedor: 1, nome_do_filme: { $ne: "NULL" } }).length
+R: 1356 filmes
+
+(5.1)
+Comando: db.registros.aggregate([
+  { $match: { categoria: /^ACT(OR|RESS)/ } },
+  { $group: { _id: "$nome_do_indicado", indicacoes: { $sum: 1 } } },
+  { $match: { indicacoes: { $gt: 1 } } },
+  { $sort: { indicacoes: -1, _id: 1 } }
+])
+R: 370 atores/atrizes. Os primeiros: Meryl Streep 21, Jack Nicholson 12, Katharine Hepburn 12, Bette Davis 11, Al Pacino 9, Denzel Washington 9, Laurence Olivier 9, Paul Newman 9, Spencer Tracy 9, Cate Blanchett 8
+
+(5.2)
+Comando: db.registros.aggregate([
+  { $match: { categoria: /^ACT(OR|RESS)/ } },
+  { $group: { _id: "$nome_do_indicado", indicacoes: { $sum: 1 } } },
+  { $sort: { indicacoes: -1 } },
+  { $limit: 1 }
+])
+R: Meryl Streep, 21 indicações
+
+(5.3)
+Comando: db.registros.aggregate([
+  { $match: { categoria: /^ACT(OR|RESS)/ } },
+  { $group: { _id: "$nome_do_indicado", indicacoes: { $sum: 1 }, vitorias: { $sum: "$vencedor" } } },
+  { $match: { indicacoes: { $gt: 3 }, vitorias: 0 } },
+  { $sort: { indicacoes: -1, _id: 1 } }
+])
+R: 27 pessoas. Os mais indicados: Glenn Close 8, Peter O'Toole 8, Richard Burton 7, Amy Adams 6, Deborah Kerr 6, Thelma Ritter 6
+
+(5.4)
+Comando: db.registros.aggregate([
+  { $group: { _id: "$nome_do_indicado", categorias: { $addToSet: "$categoria" } } },
+  { $match: { $and: [ { categorias: /^ACT(OR|RESS)/ }, { categorias: /^DIRECTING/ } ] } },
+  { $sort: { _id: 1 } }
+])
+R: 15 nomes: Clint Eastwood, George Clooney, John Cassavetes, John Huston, Kenneth Branagh, Kevin Costner, Laurence Olivier, Lionel Barrymore, Orson Welles, Robert Redford, Roberto Benigni, Steve McQueen (homônimos: o ator e o diretor são pessoas diferentes), Tim Robbins, Warren Beatty, Woody Allen
+
+(5.5)
+Comando: db.registros.aggregate([
+  { $match: { nome_do_indicado: { $ne: "NULL" } } },
+  { $group: { _id: "$nome_do_indicado", total: { $sum: 1 } } },
+  { $match: { total: 1 } },
+  { $count: "indicados_com_1_indicacao" }
+])
+R: 5749 indicados
+
+(5.6)
+Comando: db.registros.aggregate([
+  { $group: { _id: "$ano_cerimonia", total: { $sum: 1 } } },
+  { $sort: { total: -1 } },
+  { $limit: 1 }
+])
+R: 186 indicações, em 1943
+
+(6.1)
+Comando: db.registros.distinct("ano_cerimonia", { nome_do_filme: /^Toy Story/, vencedor: 1 })
+R: 2011 e 2020
+
+(6.2)
+Comando: db.registros.countDocuments({ nome_do_filme: /^Toy Story/ })
+R: 11 indicações
+
+(6.3)
+Comando: db.registros.distinct("categoria", { nome_do_filme: /^Toy Story/ })
+R: 7 categorias: ANIMATED FEATURE FILM, BEST PICTURE, MUSIC (Original Musical or Comedy Score), MUSIC (Original Song), SOUND EDITING, WRITING (Adapted Screenplay), WRITING (Screenplay Written Directly for the Screen)
+
+(6.4)
+Comando: db.registros.distinct("cerimonia", { nome_do_filme: "Crash" })
+R: 78ª cerimônia (2006)
+
+(6.5)
+Comando: db.registros.countDocuments({ nome_do_filme: "Crash" })
+R: 6 indicações
+
+(6.6)
+Comando: db.registros.countDocuments({ nome_do_filme: "Crash", categoria: "BEST PICTURE", vencedor: 1 }) > 0
+R: Sim (true)
+
+(6.7)
+Comando: db.registros.find(
+  { nome_do_filme: /Central do Brasil|Central Station/ },
+  { _id: 0, ano_cerimonia: 1, categoria: 1, nome_do_indicado: 1, vencedor: 1 }
+)
+R: Sim, com o título em inglês, "Central Station"
+
+(6.8)
+Comando: db.registros.countDocuments({ nome_do_filme: "Central Station" })
+R: 2 indicações (ACTRESS IN A LEADING ROLE e FOREIGN LANGUAGE FILM, em 1999), nenhuma vitória
+
+(7.1)
+Comando: db.registros.aggregate([ { $out: "registros_v7" } ])
+db.registros_v7.updateMany({ vencedor: "true" }, { $set: { vencedor: true } })
+db.registros_v7.updateMany({ vencedor: "false" }, { $set: { vencedor: false } })
+db.registros_v7.updateMany({ "ven cedor": { $exists: true } }, { $rename: { "ven cedor": "vencedor" } })
+R: 0 documentos modificados nos dois primeiros updates (vencedor já é numérico, 0/1); 1 documento corrigido no $rename
+
+(7.2)
+Comando: db.registros_v7.insertMany([
+  { id_registro: 11135, ano_filmagem: 2026, ano_cerimonia: 2027, cerimonia: 99, categoria: "BEST PICTURE", nome_do_indicado: "Helena Duarte and Marcos Ribeiro, Producers", nome_do_filme: "O Último Farol", vencedor: 0, ficticio: true },
+  { id_registro: 11136, ano_filmagem: 2026, ano_cerimonia: 2027, cerimonia: 99, categoria: "DIRECTING", nome_do_indicado: "Laura Mendes", nome_do_filme: "Linhas de Maré", vencedor: 0, ficticio: true },
+  { id_registro: 11137, ano_filmagem: 2026, ano_cerimonia: 2027, cerimonia: 99, categoria: "ACTRESS IN A LEADING ROLE", nome_do_indicado: "Beatriz Moura", nome_do_filme: "A Cidade Que Dormia", vencedor: 0, ficticio: true }
+])
+R: insertedCount: 3
+
+(7.3)
+Comando: db.registros_v7.insertMany([
+  { id_registro: 11138, ano_filmagem: 2019, ano_cerimonia: 2020, cerimonia: 92, categoria: "BEST INTERNATIONAL FEATURE FILM", nome_do_indicado: "South Korea", nome_do_filme: "Parasite", vencedor: 1 },
+  { id_registro: 11139, ano_filmagem: 2020, ano_cerimonia: 2021, cerimonia: 93, categoria: "BEST INTERNATIONAL FEATURE FILM", nome_do_indicado: "Denmark", nome_do_filme: "Another Round", vencedor: 1 },
+  { id_registro: 11140, ano_filmagem: 2021, ano_cerimonia: 2022, cerimonia: 94, categoria: "BEST INTERNATIONAL FEATURE FILM", nome_do_indicado: "Japan", nome_do_filme: "Drive My Car", vencedor: 1 },
+  { id_registro: 11141, ano_filmagem: 2022, ano_cerimonia: 2023, cerimonia: 95, categoria: "BEST INTERNATIONAL FEATURE FILM", nome_do_indicado: "Germany", nome_do_filme: "All Quiet on the Western Front", vencedor: 1 },
+  { id_registro: 11142, ano_filmagem: 2023, ano_cerimonia: 2024, cerimonia: 96, categoria: "BEST INTERNATIONAL FEATURE FILM", nome_do_indicado: "United Kingdom", nome_do_filme: "The Zone of Interest", vencedor: 1 }
+])
+R: insertedCount: 5
+
+(7.4)
+Comando: db.registros_v7.updateMany(
+  { nome_do_filme: /^\s|\s$|\s{2,}/ },
+  [ { $set: { nome_do_filme: { $trim: { input: { $replaceAll: { input: "$nome_do_filme", find: "  ", replacement: " " } } } } } } ]
+)
+R: modifiedCount: 3 (títulos com espaço duplo: "Volcano:  An Inquiry into the Life and Death of Malcolm Lowry", "You Are Free  (Ihr Zent Frei)" e "Paramount News Issue #37 (...Issue!  1927.....1947)")
+
+(7.5)
+Comando: db.registros_v7.deleteMany({ nome_do_filme: { $in: [null, "NULL"] } })
+R: deletedCount: 319
+
+(8.1)
+Comando: db.registros.aggregate([
+  { $match: { ano_cerimonia: { $type: "number" } } },
+  { $group: { _id: { $multiply: [ { $floor: { $divide: ["$ano_cerimonia", 10] } }, 10 ] }, total: { $sum: 1 } } },
+  { $sort: { _id: 1 } }
+])
+R: 1920s: 72 | 1930s: 711 | 1940s: 1501 | 1950s: 1188 | 1960s: 1195 | 1970s: 1056 | 1980s: 1060 | 1990s: 1113 | 2000s: 1120 | 2010s: 1250 | 2020s: 867
+
+(8.2)
+Comando: db.registros.aggregate([
+  { $match: { ano_cerimonia: { $type: "number" } } },
+  { $group: { _id: { $multiply: [ { $floor: { $divide: ["$ano_cerimonia", 10] } }, 10 ] }, total: { $sum: 1 } } },
+  { $sort: { total: -1 } },
+  { $limit: 1 }
+])
+R: Anos 1940, com 1501 indicações
+
+(8.3)
+Comando: db.registros.aggregate([
+  { $match: { ano_cerimonia: { $type: "number" } } },
+  { $group: { _id: { $multiply: [ { $floor: { $divide: ["$ano_cerimonia", 10] } }, 10 ] }, categorias: { $addToSet: "$categoria" } } },
+  { $project: { _id: 0, decada: "$_id", categorias_unicas: { $size: "$categorias" } } },
+  { $sort: { decada: 1 } }
+])
+R: 1920s: 15 | 1930s: 27 | 1940s: 38 | 1950s: 43 | 1960s: 40 | 1970s: 50 | 1980s: 34 | 1990s: 31 | 2000s: 31 | 2010s: 30 | 2020s: 32
+
+(8.4)
+Comando: db.registros.aggregate([
+  { $match: { ano_cerimonia: { $type: "number" } } },
+  { $group: { _id: "$ano_cerimonia", total: { $sum: 1 } } },
+  { $sort: { total: -1 } },
+  { $limit: 1 }
+])
+R: 1943, com 186 indicações
+
+(8.5)
+Comando: const r = db.registros.aggregate([
+  { $match: { ano_cerimonia: { $type: "number" } } },
+  { $group: { _id: { $multiply: [ { $floor: { $divide: ["$ano_cerimonia", 10] } }, 10 ] }, total: { $sum: 1 }, cerimonias: { $addToSet: "$cerimonia" } } },
+  { $sort: { _id: 1 } }
+]).toArray();
+const p = r[0], u = r[r.length - 1];
+print("Crescimento total: " + ((u.total / p.total - 1) * 100).toFixed(1) + "%");
+print("Por cerimônia: " + p.total / p.cerimonias.length + " -> " + (u.total / u.cerimonias.length).toFixed(1));
+R: +1104,2% (de 72 para 867 indicações). Por cerimônia: de 36 para 123,9 indicações (+244%)
+
+(9.1)
+Comando: db.registros.find(
+  { nome_do_indicado: "Sidney Poitier" },
+  { _id: 0, ano_cerimonia: 1, categoria: 1, nome_do_filme: 1, vencedor: 1 }
+).sort({ cerimonia: 1 }).limit(1)
+R: 1959, The Defiant Ones
+
+(9.2)
+Comando: db.registros.find(
+  { nome_do_indicado: "Sidney Poitier", ano_cerimonia: 1959 },
+  { _id: 0, vencedor: 1 }
+)
+R: Não (vencedor: 0). Ele venceu em 1964, por Lilies of the Field
+
+(9.3)
+Comando: db.registros.find(
+  { categoria: { $in: ["ACTOR", "ACTRESS"] },
+    ano_cerimonia: { $lt: 1970 },
+    nome_do_indicado: { $in: ["Sidney Poitier", "Dorothy Dandridge", "Hattie McDaniel", "Ethel Waters", "Juanita Moore", "Beah Richards"] } },
+  { _id: 0, ano_cerimonia: 1, categoria: 1, nome_do_indicado: 1, nome_do_filme: 1 }
+)
+R: 2 pessoas (3 indicações): Dorothy Dandridge (1955) e Sidney Poitier (1959 e 1964)
+
+(9.4)
+Comando: db.registros.aggregate([
+  { $match: { categoria: "DIRECTING", nome_do_indicado: { $in: ["Lina Wertmüller", "Jane Campion", "Sofia Coppola", "Kathryn Bigelow", "Greta Gerwig", "Emerald Fennell", "Chloé Zhao", "Justine Triet", "Coralie Fargeat"] } } },
+  { $lookup: {
+      from: "registros",
+      let: { f: "$nome_do_filme", c: "$cerimonia" },
+      pipeline: [ { $match: { $expr: { $and: [ { $eq: ["$nome_do_filme", "$$f"] }, { $eq: ["$cerimonia", "$$c"] }, { $eq: ["$vencedor", 1] } ] } } } ],
+      as: "vitorias" } },
+  { $match: { "vitorias.0": { $exists: true } } },
+  { $project: { _id: 0, ano: "$ano_cerimonia", diretora: "$nome_do_indicado", filme: "$nome_do_filme", oscars: { $size: "$vitorias" } } },
+  { $sort: { ano: 1 } }
+])
+R: 9 filmes: The Piano (1994), Lost in Translation (2004), The Hurt Locker (2010), Nomadland (2021), Promising Young Woman (2021), The Power of the Dog (2022), Anatomy of a Fall (2024), The Substance (2025), Hamnet (2026)
+
+(9.5)
+Comando: db.registros.aggregate([
+  { $match: { nome_do_indicado: { $in: ["Denzel Washington", "Jamie Foxx"] } } },
+  { $group: { _id: "$ano_cerimonia", atores: { $addToSet: "$nome_do_indicado" } } },
+  { $match: { "atores.1": { $exists: true } } }
+])
+R: Não, nunca concorreram no mesmo ano (resultado vazio)
+
+(9.6)
+Comando: (mesmo comando da 9.5)
+R: Não se aplica
+
+(9.7)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_cerimonia" }, categorias_vencidas: { $sum: 1 } } },
+  { $match: { categorias_vencidas: { $gt: 1 } } },
+  { $sort: { categorias_vencidas: -1, "_id.ano": 1 } }
+])
+R: 363 casos. Os maiores: Ben-Hur (1960), Titanic (1998) e The Lord of the Rings: The Return of the King (2004) com 11; West Side Story (1962) com 10; Gigi (1959), The Last Emperor (1988) e The English Patient (1997) com 9
+
+(10.1)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, $or: [ { categoria: { $in: ["OUTSTANDING PICTURE", "BEST PICTURE"] } }, { categoria: /^DIRECTING/ } ] } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_cerimonia" }, categorias: { $addToSet: "$categoria" } } },
+  { $match: { $and: [ { categorias: /^DIRECTING/ }, { categorias: { $in: ["OUTSTANDING PICTURE", "BEST PICTURE"] } } ] } },
+  { $sort: { "_id.ano": 1 } }
+])
+R: 50 filmes, de Lawrence of Arabia (1963) a One Battle After Another (2026)
+
+(10.2)
+Comando: db.registros.aggregate([
+  { $match: { nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_cerimonia" }, indicacoes: { $sum: 1 } } },
+  { $sort: { indicacoes: -1 } },
+  { $limit: 1 }
+])
+R: Sinners, com 16 indicações em 2026
+
+(10.3)
+Comando: db.registros.aggregate([
+  { $match: { nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_filmagem" }, indicacoes: { $sum: 1 }, vitorias: { $sum: "$vencedor" } } },
+  { $match: { indicacoes: { $gte: 5 } } },
+  { $project: { indicacoes: 1, vitorias: 1, taxa: { $round: [ { $multiply: [ { $divide: ["$vitorias", "$indicacoes"] }, 100 ] }, 1 ] } } },
+  { $sort: { taxa: -1, indicacoes: -1 } },
+  { $limit: 10 }
+])
+R: The Lord of the Rings: The Return of the King, 100% (11 de 11), considerando filmes com pelo menos 5 indicações
+
+(10.4)
+Comando: db.registros.aggregate([
+  { $match: { categoria: /^ACT(OR|RESS)/ } },
+  { $group: { _id: "$nome_do_indicado", anos: { $addToSet: "$ano_cerimonia" } } },
+  { $project: { anos: { $sortArray: { input: "$anos", sortBy: 1 } } } }
+]).toArray()
+  .filter(a => a.anos.some((ano, i) => i > 0 && ano - a.anos[i - 1] === 1))
+  .map(a => ({ nome: a._id, anos: a.anos }))
+R: 116 atores/atrizes. As maiores sequências: Bette Davis (1939 a 1943) e Greer Garson (1942 a 1946), com 5 anos seguidos
+
+(10.5)
+Comando: db.registros.aggregate([
+  { $group: { _id: "$cerimonia", total: { $sum: 1 } } },
+  { $group: { _id: null, media: { $avg: "$total" } } }
+])
+R: 113,6 indicações por cerimônia
+
+(10.6)
+Comando: db.registros.aggregate([
+  { $group: { _id: { filme: "$nome_do_filme", cer: "$cerimonia" }, total: { $sum: 1 }, docs: { $push: "$$ROOT" } } },
+  { $match: { total: 1 } },
+  { $unwind: "$docs" },
+  { $replaceRoot: { newRoot: "$docs" } },
+  { $match: { categoria: { $in: ["ACTOR", "ACTRESS", "BEST PICTURE"] } } },
+  { $project: { _id: 0, ano_cerimonia: 1, categoria: 1, nome_do_indicado: 1, nome_do_filme: 1, vencedor: 1 } }
+])
+R: 72 casos (48 em ACTRESS e 24 em ACTOR; nenhum em BEST PICTURE), dos quais 9 venceram
+
+(11.1)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_filmagem" }, oscars: { $sum: 1 } } },
+  { $sort: { oscars: -1, "_id.ano": 1 } },
+  { $limit: 10 }
+])
+R: 1. Ben-Hur (11), 2. Titanic (11), 3. The Lord of the Rings: The Return of the King (11), 4. West Side Story (10), 5. Gigi (9), 6. The Last Emperor (9), 7. The English Patient (9), 8. Gone with the Wind (8), 9. From Here to Eternity (8), 10. On the Waterfront (8)
+
+(11.2)
+Comando: db.registros.aggregate([
+  { $match: { categoria: /^(ACT(OR|RESS)|DIRECTING)/ } },
+  { $group: { _id: "$nome_do_indicado", indicacoes: { $sum: 1 } } },
+  { $sort: { indicacoes: -1, _id: 1 } },
+  { $limit: 10 }
+])
+R: 1. Meryl Streep (21), 2. Jack Nicholson (12), 3. Katharine Hepburn (12), 4. William Wyler (12), 5. Bette Davis (11), 6. Laurence Olivier (10), 7. Martin Scorsese (10), 8. Al Pacino (9), 9. Denzel Washington (9), 10. Paul Newman (9)
+
+(11.3)
+Comando: db.registros.aggregate([
+  { $match: { nome_do_indicado: { $ne: "NULL" }, categoria: { $not: /FOREIGN|INTERNATIONAL/ } } },
+  { $group: { _id: "$nome_do_indicado", indicacoes: { $sum: 1 }, vitorias: { $sum: "$vencedor" } } },
+  { $match: { indicacoes: { $gt: 5 }, vitorias: 0 } },
+  { $sort: { indicacoes: -1, _id: 1 } }
+])
+R: 31 nomes. Os principais: Thomas Newman (14), Diane Warren (13), George Folsey (12), Peter O'Toole (8), Glenn Close (8), Richard Burton (7), Amy Adams (6), Thelma Ritter (6)
+
+(11.4)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, nome_do_indicado: { $ne: "NULL" } } },
+  { $group: { _id: "$categoria", vitorias: { $sum: 1 }, vencedores: { $addToSet: "$nome_do_indicado" } } },
+  { $match: { vitorias: { $gte: 10 } } },
+  { $project: { vitorias: 1, vencedores_distintos: { $size: "$vencedores" }, concentracao: { $round: [ { $divide: [ { $size: "$vencedores" }, "$vitorias" ] }, 2 ] } } },
+  { $sort: { concentracao: 1 } }
+])
+R: FOREIGN LANGUAGE FILM: 63 vitórias para 28 países (0,44). Entre pessoas: SHORT SUBJECT (Cartoon), 39 vitórias para 18 vencedores (0,46)
+
+(11.5)
+Comando: db.registros.aggregate([
+  { $group: { _id: "$categoria", total: { $sum: 1 }, cerimonias: { $addToSet: "$cerimonia" } } },
+  { $project: { total: 1, n_cerimonias: { $size: "$cerimonias" }, media_indicados: { $round: [ { $divide: ["$total", { $size: "$cerimonias" }] }, 2 ] } } },
+  { $match: { n_cerimonias: { $gte: 10 } } },
+  { $sort: { media_indicados: -1 } }
+])
+R: Mais competitiva: OUTSTANDING PRODUCTION (9,27 indicados por cerimônia). Menos competitiva: JEAN HERSHOLT HUMANITARIAN AWARD (1,05)
+
+(11.6)
+Comando: db.registros.aggregate([
+  { $match: { nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: "$nome_do_filme", indicacoes: { $push: { cer: "$cerimonia", cat: "$categoria", v: "$vencedor" } } } }
+]).toArray().filter(f => {
+  const perdeu = f.indicacoes.filter(i => i.v === 0);
+  const venceu = f.indicacoes.filter(i => i.v === 1);
+  return perdeu.some(p => venceu.some(v => v.cer !== p.cer && v.cat !== p.cat && Math.abs(v.cer - p.cer) <= 3));
+}).map(f => f._id)
+R: 6 filmes: Through a Glass Darkly, Sundays and Cybele, The Shop on Main Street, Investigation of a Citizen above Suspicion, Day for Night, Amarcord
+
+(12.1)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_filmagem" }, oscars: { $sum: 1 } } },
+  { $sort: { oscars: -1, "_id.ano": 1 } },
+  { $limit: 20 }
+])
+R: Os 10 filmes da 11.1, mais My Fair Lady, Cabaret, Gandhi, Amadeus, Slumdog Millionaire (8 Oscars cada), Going My Way, The Best Years of Our Lives, The Bridge on the River Kwai, Lawrence of Arabia e Patton (7 cada)
+
+(12.2)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, nome_do_filme: { $ne: "NULL" }, ano_cerimonia: { $type: "number", $gte: 1930 } } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_cerimonia" }, oscars: { $sum: 1 } } },
+  { $sort: { oscars: -1, "_id.ano": 1 } },
+  { $group: { _id: { $multiply: [ { $floor: { $divide: ["$_id.ano", 10] } }, 10 ] }, filmes: { $push: { filme: "$_id.filme", ano: "$_id.ano", oscars: "$oscars" } } } },
+  { $project: { filmes: { $slice: ["$filmes", 5] } } },
+  { $sort: { _id: 1 } }
+])
+R: 1930s: It Happened One Night, The Informer, Anthony Adverse, Cimarron, Cavalcade
+1940s: Gone with the Wind, Going My Way, The Best Years of Our Lives, Mrs. Miniver, How Green Was My Valley
+1950s: Gigi, From Here to Eternity, On the Waterfront, The Bridge on the River Kwai, All about Eve
+1960s: Ben-Hur, West Side Story, My Fair Lady, Lawrence of Arabia, A Man for All Seasons
+1970s: Cabaret, Patton, The Sting, The Godfather Part II, Star Wars
+1980s: The Last Emperor, Gandhi, Amadeus, Out of Africa, Kramer vs. Kramer
+1990s: Titanic, The English Patient, Dances With Wolves, Schindler's List, Shakespeare in Love
+2000s: The Lord of the Rings: The Return of the King, Slumdog Millionaire, Chicago, American Beauty, Gladiator
+2010s: Gravity, The Hurt Locker, Mad Max: Fury Road, La La Land, Hugo
+2020s: Everything Everywhere All at Once, Oppenheimer, Dune, One Battle After Another, Anora
+
+(12.3)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, nome_do_filme: { $ne: "NULL" }, ano_filmagem: { $lte: new Date().getFullYear() - 51 } } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_filmagem" }, oscars: { $sum: 1 } } },
+  { $sort: { oscars: -1, "_id.ano": 1 } }
+])
+R: 662 filmes (lançados até 1975). Os mais premiados: Ben-Hur (11), West Side Story (10), Gigi (9), Gone with the Wind (8), From Here to Eternity (8), On the Waterfront (8), My Fair Lady (8), Cabaret (8)
+
+(12.4)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1 } },
+  { $group: { _id: { cerimonia: "$cerimonia", ano: "$ano_cerimonia" }, premios: { $sum: 1 } } },
+  { $sort: { premios: -1, "_id.cerimonia": 1 } },
+  { $limit: 5 }
+])
+R: 25ª (1953) com 33 prêmios, 27ª (1955) com 33, 21ª (1949) com 32, 22ª (1950) com 32, 26ª (1954) com 31
+
+(12.5)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1 } },
+  { $sort: { cerimonia: 1 } },
+  { $group: { _id: "$categoria", primeiro: { $first: { ano: "$ano_cerimonia", nome: "$nome_do_indicado", filme: "$nome_do_filme" } } } },
+  { $sort: { "primeiro.ano": 1 } }
+])
+R: 1928: primeiros vencedores (Emil Jannings, Janet Gaynor, Wings)
+1940: Hattie McDaniel, primeira pessoa negra a vencer
+1964: Sidney Poitier, primeiro ator negro a vencer como ator principal
+1977: Lina Wertmüller, primeira mulher indicada a Direção
+2002: Halle Berry, primeira atriz negra a vencer como atriz principal
+2010: Kathryn Bigelow, primeira mulher a vencer Direção
+2020: Parasite, primeiro filme não falado em inglês a vencer Melhor Filme
+2021: Chloé Zhao, primeira mulher não branca a vencer Direção
+2026: Autumn Durald Arkapaw, primeira mulher a vencer Fotografia; estreia da categoria CASTING
+
+(12.6)
+Comando: db.registros.aggregate([
+  { $match: { nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_cerimonia" }, indicacoes: { $sum: 1 }, vitorias: { $sum: "$vencedor" } } },
+  { $match: { vitorias: 0 } },
+  { $sort: { indicacoes: -1 } },
+  { $limit: 10 }
+])
+R: Filmes: The Turning Point (1978) e The Color Purple (1986), com 11 indicações e 0 vitórias; Gangs of New York, True Grit, American Hustle, The Irishman e Killers of the Flower Moon, com 10 e 0. Pessoas (comando da 11.3): Thomas Newman (14), Diane Warren (13), Glenn Close (8), Peter O'Toole (8)
+
+(12.7)
+Comando: const BP = ["OUTSTANDING PICTURE", "OUTSTANDING PRODUCTION", "OUTSTANDING MOTION PICTURE", "BEST MOTION PICTURE", "BEST PICTURE"];
+db.registros.aggregate([
+  { $match: { nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: { filme: "$nome_do_filme", cer: "$cerimonia" }, indicacoes: { $sum: 1 },
+              ganhou_bp: { $max: { $cond: [ { $and: [ { $in: ["$categoria", BP] }, { $eq: ["$vencedor", 1] } ] }, 1, 0 ] } } } },
+  { $match: { indicacoes: 10 } },
+  { $group: { _id: null, filmes: { $sum: 1 }, venceram_bp: { $sum: "$ganhou_bp" } } },
+  { $project: { _id: 0, filmes: 1, venceram_bp: 1, probabilidade: { $round: [ { $multiply: [ { $divide: ["$venceram_bp", "$filmes"] }, 100 ] }, 1 ] } } }
+])
+R: 28,3% (13 de 46 filmes). Com 10 ou mais indicações: 40,2% (43 de 107)
+
+(12.8)
+Comando: const vencedores = db.registros.aggregate([
+  { $match: { categoria: { $in: ["ACTOR", "ACTOR IN A LEADING ROLE"] }, vencedor: 1 } },
+  { $group: { _id: "$nome_do_indicado", primeira_vitoria: { $min: "$cerimonia" } } }
+]).toArray();
+const antes = vencedores.map(v => db.registros.countDocuments({
+  nome_do_indicado: v._id, categoria: /^ACT(OR|RESS)/, cerimonia: { $lt: v.primeira_vitoria } }));
+print("Média: " + (antes.reduce((a, b) => a + b, 0) / antes.length).toFixed(2));
+R: 1,09 indicação em média antes da primeira vitória (mediana 1). 42 dos 88 vencedores ganharam na primeira indicação
+
+(12.9)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, nome_do_indicado: { $ne: "NULL" } } },
+  { $group: { _id: { cat: "$categoria", nome: "$nome_do_indicado" }, vitorias: { $sum: 1 } } },
+  { $group: { _id: "$_id.cat", total: { $sum: "$vitorias" }, repetidas: { $sum: { $cond: [ { $gt: ["$vitorias", 1] }, "$vitorias", 0 ] } } } },
+  { $match: { total: { $gte: 15 } } },
+  { $project: { total: 1, previsibilidade: { $round: [ { $divide: ["$repetidas", "$total"] }, 2 ] } } },
+  { $sort: { previsibilidade: -1 } }
+])
+R: FOREIGN LANGUAGE FILM (78% das vitórias foram de países que venceram mais de uma vez). Entre pessoas: SHORT SUBJECT (Two-reel), com 71%
+
+(13.1)
+Comando: db.registros.distinct("nome_do_filme", { nome_do_filme: /^The /, vencedor: 1 }).length
+R: 327 filmes
+
+(13.2)
+Comando: db.registros.distinct("nome_do_indicado", { categoria: /^ACT(OR|RESS)/, nome_do_indicado: /\w-\w/ })
+R: 9 nomes: Ann-Margret, Armin Mueller-Stahl, Catherine Zeta-Jones, Daniel Day-Lewis, Keisha Castle-Hughes, Kodi Smit-McPhee, Marianne Jean-Baptiste, Marie-Christine Barrault, Yuh-Jung Youn
+
+(13.3)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, categoria: { $not: /HONORARY|SPECIAL|THALBERG|HERSHOLT|SAWYER|COMMENDATION/ } } },
+  { $group: { _id: { ano: "$ano_cerimonia", categoria: "$categoria" }, vencedores: { $push: "$nome_do_indicado" } } },
+  { $match: { "vencedores.1": { $exists: true } } },
+  { $sort: { "_id.ano": 1 } }
+])
+R: 10 casos. Empates de verdade: 1932 ACTOR (Fredric March e Wallace Beery), 1950 DOCUMENTARY (Short Subject), 1969 ACTRESS (Katharine Hepburn e Barbra Streisand), 1987 DOCUMENTARY (Feature), 1995 SHORT FILM (Live Action), 2013 SOUND EDITING, 2026 SHORT FILM (Live Action)
+
+(13.4)
+Comando: const BP = ["OUTSTANDING PICTURE", "OUTSTANDING PRODUCTION", "OUTSTANDING MOTION PICTURE", "BEST MOTION PICTURE", "BEST PICTURE"];
+db.registros.aggregate([
+  { $match: { categoria: { $in: BP }, vencedor: 1 } },
+  { $sample: { size: 5 } },
+  { $project: { _id: 0, ano_cerimonia: 1, nome_do_filme: 1 } }
+])
+R: 5 filmes sorteados entre os 98 vencedores de Melhor Filme (o resultado muda a cada execução)
+
+(13.5)
+Comando: db.registros.aggregate([
+  { $match: { vencedor: 1, nome_do_filme: { $ne: "NULL" } } },
+  { $group: { _id: "$nome_do_filme" } },
+  { $group: { _id: { $size: { $split: ["$_id", " "] } }, filmes: { $sum: 1 } } },
+  { $sort: { _id: 1 } }
+])
+R: 1 palavra: 256 | 2 palavras: 342 | 3 palavras: 361 (mais comum) | 4: 181 | 5: 113 | 6: 53 | 7 ou mais: 50
+
+(14.1)
+Comando: db.registros.aggregate([
+  { $facet: {
+      total_indicacoes: [ { $count: "valor" } ],
+      total_cerimonias: [ { $group: { _id: "$cerimonia" } }, { $count: "valor" } ],
+      total_vencedores: [ { $match: { vencedor: 1 } }, { $count: "valor" } ],
+      categoria_mais_indicada: [ { $group: { _id: "$categoria", total: { $sum: 1 } } }, { $sort: { total: -1 } }, { $limit: 1 } ],
+      filme_mais_premiado: [
+        { $match: { vencedor: 1, nome_do_filme: { $ne: "NULL" } } },
+        { $group: { _id: { filme: "$nome_do_filme", ano: "$ano_filmagem" }, oscars: { $sum: 1 } } },
+        { $sort: { oscars: -1, "_id.ano": 1 } }, { $limit: 1 } ],
+      ator_mais_indicado: [
+        { $match: { categoria: /^ACT(OR|RESS)/ } },
+        { $group: { _id: "$nome_do_indicado", total: { $sum: 1 } } }, { $sort: { total: -1 } }, { $limit: 1 } ],
+      decada_mais_premiada: [
+        { $match: { vencedor: 1, ano_cerimonia: { $type: "number" } } },
+        { $group: { _id: { $multiply: [ { $floor: { $divide: ["$ano_cerimonia", 10] } }, 10 ] }, premios: { $sum: 1 } } },
+        { $sort: { premios: -1 } }, { $limit: 1 } ],
+      categorias_unicas: [ { $group: { _id: "$categoria" } }, { $count: "valor" } ]
+  } },
+  { $project: {
+      total_indicacoes: { $first: "$total_indicacoes.valor" },
+      total_cerimonias: { $first: "$total_cerimonias.valor" },
+      total_vencedores: { $first: "$total_vencedores.valor" },
+      categoria_mais_indicada: { $first: "$categoria_mais_indicada" },
+      filme_mais_premiado: { $first: "$filme_mais_premiado" },
+      ator_mais_indicado: { $first: "$ator_mais_indicado" },
+      decada_mais_premiada: { $first: "$decada_mais_premiada" },
+      categorias_unicas: { $first: "$categorias_unicas.valor" }
+  } }
+])
+R: {
+  total_indicacoes: 11134,
+  total_cerimonias: 98,
+  total_vencedores: 2512,
+  categoria_mais_indicada: { _id: 'DIRECTING', total: 479 },
+  filme_mais_premiado: { _id: { filme: 'Ben-Hur', ano: 1959 }, oscars: 11 },
+  ator_mais_indicado: { _id: 'Meryl Streep', total: 21 },
+  decada_mais_premiada: { _id: 1950, premios: 295 },
+  categorias_unicas: 116
+}
